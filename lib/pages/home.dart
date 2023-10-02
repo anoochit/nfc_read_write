@@ -27,29 +27,53 @@ class HomePage extends GetView<AppController> {
             if (snapshot.data == false) {
               return const Center(child: Text('NFC is disable'));
             } else {
-              return ListView(
-                shrinkWrap: true,
+              return Flex(
+                direction: Axis.vertical,
                 children: [
-                  Center(
-                    child: Obx(() => Text(controller.tagData.value)),
+                  Flexible(
+                    child: Center(
+                      child: Obx(() => Text(
+                            controller.tagData.value,
+                            style: Theme.of(context).textTheme.displayMedium,
+                          )),
+                    ),
                   ),
-                  // read
-                  ElevatedButton(
-                    onPressed: () {
-                      // read tag
-                      readTag(controller: controller, context: context);
-                    },
-                    child: const Text('Read'),
-                  ),
+                  GridView(
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                    ),
+                    shrinkWrap: true,
+                    children: [
+                      // read
+                      ElevatedButton(
+                        style: ButtonStyle(
+                            shape: MaterialStateProperty.all<
+                                RoundedRectangleBorder>(RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8.0),
+                        ))),
+                        onPressed: () {
+                          // read tag
+                          readTag(controller: controller, context: context);
+                        },
+                        child: const Text('Read'),
+                      ),
 
-                  // write
-                  ElevatedButton(
-                    onPressed: () {
-                      // write tag
-                      writeTag(context: context);
-                    },
-                    child: const Text('Write'),
-                  )
+                      // write
+                      ElevatedButton(
+                        style: ButtonStyle(
+                            shape: MaterialStateProperty.all<
+                                RoundedRectangleBorder>(RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8.0),
+                        ))),
+                        onPressed: () {
+                          // write tag
+                          writeTag(context: context);
+                        },
+                        child: const Text('Write'),
+                      )
+                    ],
+                  ),
                 ],
               );
             }
@@ -89,13 +113,14 @@ class HomePage extends GetView<AppController> {
         Iterable<int>? payload = message['records'][0]['payload'];
 
         if ((payload != null) && (payload.isNotEmpty)) {
+          // text
           if (payload.first == 0x02) {
             final payloadData = payload.skip(1).toList();
-            final value = String.fromCharCodes(payloadData);
+            final value = utf8.decode(payloadData);
             controller.tagData.value = value;
-          } else if (payload.first == 0x04) {
-            // final payloadData = payload.skip(1).toList();
-            final value = utf8.decode(payload.toList()).substring(1);
+          } else {
+            final payloadData = payload.toList();
+            final value = utf8.decode(payloadData);
             controller.tagData.value = value;
           }
         } else {
@@ -130,7 +155,7 @@ class HomePage extends GetView<AppController> {
           final record = NdefRecord.createText('HelloWorld');
           // final record = NdefRecord.createUri(Uri.parse('https://google.com'));
           final message = NdefMessage([record]);
-          ndef.write(message).whenComplete(() {
+          ndef.write(message).then((value) {
             // show snack bar
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
